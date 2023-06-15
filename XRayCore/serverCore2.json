@@ -1,0 +1,149 @@
+{
+    "dns": {
+        "fallbackStrategy": "disabled_if_any_match",
+        "servers": [
+            {
+                "address": "https://8.8.8.8/dns-query",
+                "domains": [],
+                "queryStrategy": ""
+            },
+            {
+                "address": "localhost",
+                "domains": [],
+                "fallbackStrategy": "disabled",
+                "queryStrategy": ""
+            }
+        ],
+        "tag": "dns"
+    },
+    "inbounds": [
+        {
+            "listen": "127.0.0.1",
+            "port": 1234,
+            "protocol": "socks",
+            "settings": {
+                "udp": true
+            },
+            "sniffing": {
+                "destOverride": [
+                    "http",
+                    "tls",
+                    "quic"
+                ],
+                "enabled": true,
+                "metadataOnly": false,
+                "routeOnly": true
+            },
+            "tag": "socks-in"
+        },
+        {
+            "listen": "127.0.0.1",
+            "port": 1235,
+            "protocol": "http",
+            "sniffing": {
+                "destOverride": [
+                    "http",
+                    "tls",
+                    "quic"
+                ],
+                "enabled": true,
+                "metadataOnly": false,
+                "routeOnly": true
+            },
+            "tag": "http-in"
+        }
+    ],
+    "log": {
+        "loglevel": "warning"
+    },
+    "outbounds": [
+        {
+            "domainStrategy": "AsIs",
+            "protocol": "http",
+            "settings": {
+                "servers": [
+                    {
+                        "address": "127.0.0.1",
+                        "port": 1080
+                    }
+                ]
+            },
+            "streamSettings": {
+                "network": "tcp"
+            },
+            "tag": "proxy"
+        },
+        {
+            "domainStrategy": "",
+            "protocol": "freedom",
+            "tag": "direct"
+        },
+        {
+            "domainStrategy": "",
+            "protocol": "freedom",
+            "tag": "bypass"
+        },
+        {
+            "protocol": "blackhole",
+            "tag": "block"
+        },
+        {
+            "protocol": "dns",
+            "proxySettings": {
+                "tag": "proxy",
+                "transportLayer": true
+            },
+            "settings": {
+                "address": "8.8.8.8",
+                "network": "tcp",
+                "port": 53,
+                "userLevel": 1
+            },
+            "tag": "dns-out"
+        }
+    ],
+    "policy": {
+        "levels": {
+            "1": {
+                "connIdle": 30
+            }
+        },
+        "system": {
+            "statsOutboundDownlink": true,
+            "statsOutboundUplink": true
+        }
+    },
+    "routing": {
+        "domainMatcher": "mph",
+        "domainStrategy": "AsIs",
+        "rules": [
+            {
+                "inboundTag": [
+                    "socks-in",
+                    "http-in"
+                ],
+                "outboundTag": "dns-out",
+                "port": "53",
+                "type": "field"
+            },
+            {
+                "domain": [
+                    "geosite:category-ads-all",
+                    "domain:appcenter.ms",
+                    "domain:app-measurement.com",
+                    "domain:firebase.io",
+                    "domain:crashlytics.com",
+                    "domain:google-analytics.com"
+                ],
+                "outboundTag": "block",
+                "type": "field"
+            },
+            {
+                "outboundTag": "proxy",
+                "port": "0-65535",
+                "type": "field"
+            }
+        ]
+    },
+    "stats": {}
+}
